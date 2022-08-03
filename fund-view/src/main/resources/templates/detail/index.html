@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="include/header::html('投资模拟回测')" ></head>
+<body >
+<script>
+    var urlIP=window.location.hostname;
+    var chart4Profit = null;
+    var lastCode = "000000";
+
+    $(function () {
+        var indexVue = {
+            currentFund:'004424',
+            fundMains: [],
+
+            ma:7,
+            buyThreshold:1.01,
+            sellThreshold:0.99,
+
+            indexStartDate: null,
+            indexEndDate: null,
+            startDate:null,
+            endDate:null,
+
+            flushDate: true,
+
+            fundDatas:[],//单位净值数据集合
+            moveAvgs:[],//移动均线
+            profitList:[],//收益率集合
+            tradeList:[],//交易记录集合
+            profitGlance:[],//收益一览
+            tradingStatistics:[],//交易统计
+
+            gridWidth:0.03,
+            initAmount:0,
+            initShare:5,
+            gridList:[],
+            gridStatistics:[],
+
+            castProfitRate:20,
+            regular:{},
+            castCycle:7,
+            money:0,
+        };
+        var vue = new Vue({
+            el: '#indexDiv',
+            data: indexVue,
+            mounted: function () {
+                this.init();
+            },
+            methods: {
+                init:function(){
+                    var url =  "http://"+urlIP+":8031/api-codes/fundMains";
+                    axios.get(url).then(function(response) {
+                        vue.fundMains = response.data;
+                        vue.$nextTick(function(){
+                            vue.simulate();
+                        });
+                    });
+                },
+                simulate:function(){
+                    var url =  "http://"+urlIP+":8031/api-codes/simulate/"+vue.currentFund+"/"+vue.startDate+"/"+vue.endDate+"/"+vue.ma+"/"+vue.buyThreshold+"/"+vue.sellThreshold;
+                    axios.get(url).then(function(response) {
+                        //清空原数据
+                        vue.fundDatas = [];
+                        vue.moveAvgs = [];
+                        vue.profitList = [];
+                        vue.tradeList = [];
+                        vue.profitGlance = [];
+                        vue.tradingStatistics = [];
+
+                        //获取返回数据
+                        vue.fundDatas = response.data.fundDatas;
+                        vue.moveAvgs = response.data.moveAvgs;
+                        vue.profitList = response.data.profitList;
+                        vue.tradeList = response.data.tradeList;
+                        vue.profitGlance = response.data.profitGlance;
+                        vue.tradingStatistics = response.data.tradingStatistics;
+
+                        if(vue.initAmount==0 || lastCode!=vue.currentFund){
+                            vue.initAmount = vue.fundDatas[0].dwjz;
+                            vue.initShare=5;
+                            lastCode = vue.currentFund;
+                        }
+
+                        //日期
+                        vue.indexStartDate = response.data.indexStartDate;
+                        vue.indexEndDate = response.data.indexEndDate;
+
+                        //定义chartjs表图字段
+                        var dates = new Array();
+                        var closePoints = new Array();
+                        var moveAvgVals = new Array();
+                        var profitVals = new Array();
+
+                        //指数数据
+                        for(i in vue.fundDatas){
+                            var indexData = vue.fundDatas[i];
+                            dates.push(indexData.funddate);
+                            closePoints.push(indexData.dwjz);
+
+                            moveAvgVals.push(vue.moveAvgs[i]);
+                            profitVals.push(vue.profitList[i]);
+                        }
+
+                        //收益图标
+                        chart4Profit.config.data.labels = dates;
+                        chart4Profit.config.data.datasets[0].label = vue.currentFund;
+                        chart4Profit.config.data.datasets[0].data = closePoints;
+                        chart4Profit.config.data.datasets[1].data = moveAvgVals;
+                        chart4Profit.config.data.datasets[2].data = profitVals;
+                        chart4Profit.update();
+
+                        if(vue.flushDate)
+                            vue.updateDate();
+
+                        vue.changeGrid();
+                        vue.castSurelyFunction();
+                    });
+                },
+                changeParamWithFlushDate:function () {
+                    vue.flushDate = true;
+                    vue.startDate = null;
+                    vue.endDate = null;
+                    vue.simulate();
+                },
+                changeParam:function () {
+                    vue.flushDate = false;
+                    vue.simulate();
+                },
+                updateDate:function(){
+                    vue.startDate = vue.indexStartDate;
+                    vue.endDate = vue.indexEndDate;
+
+                    //需要先destroy，否则后续新的日期范围如果超出了前面的日期范围，会出冲突
+                    $('#date4Start').datepicker("destroy");
+                    $('#date4Start').datepicker({
+                        "format": 'yyyy-mm-dd',
+                        "language": "zh-CN",
+                        autoclose: true,
+                        startDate: vue.indexStartDate,
+                        endDate: vue.indexEndDate,
+                    }).on("changeDate",function(e){
+                        var month = (e.date.getMonth()+1);
+                        if(month <10)
+                            month = '0'+month;
+                        var day = (e.date.getDate());
+                        if(day <10)
+                            day = '0'+day;
+                        vue.startDate = e.date.getFullYear()+"-"+month+"-"+day;
+
+                        if(!vue.checkDateRange()){
+                            $('#date4Start').datepicker('update', vue.indexStartDate);
+                            return;
+                        }
+
+                        vue.changeParam();
+                    });
+
+                    $('#date4End').datepicker("destroy");
+                    $('#date4End').datepicker({
+                        "format": 'yyyy-mm-dd',
+                        "language": "zh-CN",
+                        autoclose: true,
+                        startDate: vue.indexStartDate,
+                        endDate: vue.indexEndDate,
+                    }).on("changeDate",function(e){
+                        var month = (e.date.getMonth()+1);
+                        if(month <10)
+                            month = '0'+month;
+                        var day = (e.date.getDate());
+                        if(day <10)
+                            day = '0'+day;
+                        vue.endDate = e.date.getFullYear()+"-"+month+"-"+day;
+                        if(!vue.checkDateRange()){
+                            $('#date4End').datepicker('update', vue.indexEndDate);
+                            return;
+                        }
+
+                        vue.changeParam();
+
+                    });
+
+                    $('#date4Start').datepicker('update', vue.indexStartDate);
+                    $('#date4End').datepicker('update', vue.indexEndDate);
+                },
+                checkDateRange:function(){
+                    if(null==vue.startDate || null==vue.endDate)
+                        return true;
+
+                    var strStartDate = vue.startDate.replace(/-/g, '/')
+                    var startTime = new Date(strStartDate).getTime();
+                    var strEndDate = vue.endDate.replace(/-/g, '/')
+                    var endTime = new Date(strEndDate).getTime();
+                    if(startTime>endTime){
+                        alert("开始日期不能大于日期！");
+                        return false;
+                    }
+                    return true;
+                },
+
+                changeGrid:function(){
+                    var url =  "http://"+urlIP+":8031/api-codes/grid/"+vue.currentFund+"/"+vue.startDate+"/"+vue.endDate+"/"+vue.gridWidth+"/"+vue.initAmount+"/"+vue.initShare;
+                    axios.get(url).then(function(response) {
+                        vue.gridList = response.data.gridList;
+                        vue.gridStatistics =  response.data.gridStatistics;
+                    });
+                },
+                castSurelyFunction:function () {
+                    vue.money=100;//每次定投金额
+                    var url =  "http://"+urlIP+":8031/api-codes/castSurely/"+vue.currentFund+"/"+vue.startDate+"/"+vue.endDate+"/"+vue.castProfitRate+"/"+vue.castCycle+"/"+vue.money;
+                    axios.get(url).then(function(response) {
+                        vue.regular = response.data;
+                    });
+                },
+
+            },
+        });
+
+        var ctx4Profit = $(".canvas4Profit")[0].getContext('2d');
+        chart4Profit = new Chart(ctx4Profit, {
+            type: 'line',
+            data: {
+                labels: '',
+                datasets: [
+                    {
+                        label: '',
+                        data: [],
+                        borderColor: '#FF4040',
+                        backgroundColor: '#FF4040',
+                        borderWidth: 1.2,
+                        pointRadius: 0,
+                        fill: false,
+                        lineTension: 0,
+                    },
+                    {
+                        label: '移动平均线',
+                        data: [],
+                        borderColor: '#5D98C8',
+                        backgroundColor: '#5D98C8',
+                        borderWidth: 1,
+                        pointRadius: 0,
+                        fill: false,
+                        lineTension: 0,
+                    },
+                    {
+                        label: '趋势投资',
+                        data: [],
+                        borderColor: '#FFE9A2',
+                        backgroundColor: '#FFE9A2',
+                        borderWidth: 1.2,
+                        pointRadius: 0,
+                        fill: false,
+                        lineTension: 0,
+                    }
+                ]
+            },
+            options: {
+                title: {
+                    display: true,
+                    text: '指数趋势投资收益对比图'
+                },
+                responsive: true,
+                responsiveAnimationDuration:3000,
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: false,
+                        }
+                    }]
+                },
+                tooltips: {
+                    intersect: false,
+                    mode: 'index',
+// 	   					axis: 'y',
+                    callbacks: {
+                        label: function(tooltipItem, myData) {
+                            var label = myData.datasets[tooltipItem.datasetIndex].label || '';
+                            if (label) {
+                                label += ': ';
+                            }
+                            label += parseFloat(tooltipItem.value).toFixed(2);
+                            return label;
+                        }
+                    }
+                }
+            }
+        });
+    });
+
+</script>
+
+<style>
+    table.inputTable{
+        width:100%;
+    }
+    table.inputTable td{
+        padding:20px 20px;
+    }
+
+    table{
+        margin:20px;
+    }
+
+    div#indexDiv{
+        margin:50px;
+    }
+</style>
+
+<div id="indexDiv">
+    <span class="label label-info">回测参数</span>
+    <table class="inputTable ">
+        <tr>
+            <td width="15%" align="right">
+				<span data-toggle="tooltip" data-placement="top" title="选择某一个指数进行模拟回测">
+					请选择指数:<span class="glyphicon glyphicon-question-sign" > </span>
+				</span>
+            </td>
+            <td width="25%">
+                <select @change="changeParamWithFlushDate" v-model="currentFund" class="indexSelect form-control">
+                    <option v-for="bean in fundMains " :value="bean.fundcode">{{bean.fundname}} - ( {{bean.fundcode}} )</option>
+                </select>
+            </td>
+            <td width="25%"></td>
+            <td width="25%"></td>
+            <td width="10%"></td>
+        </tr>
+        <tr>
+            <td align="right">
+            				<span data-toggle="tooltip" data-placement="top" title="MA 即 moving average, 移动均线的意思。 比如MA20就表示20日均线，取最近20天的值的平均数">
+            				MA(均线) :<span class="glyphicon glyphicon-question-sign	" > </span>
+           				</span>
+            </td>
+            <td>
+                <select class="form-control" @change="changeParam" v-model="ma">
+                    <option  value="5">5日</option>
+                    <option  value="7">7日</option>
+                    <option  value="10">10日</option>
+                    <option  value="20">20日</option>
+                    <option  value="60">60日</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td align="right">
+           				<span data-toggle="tooltip" data-placement="top" title="当前值大于均线，说明上升趋势来了，就可以购买，或者再稍等等，比均线多 5% 再下手，那么购买阈值就是 1.05 ">
+            				购买阈值:<span class="glyphicon glyphicon-question-sign	" > </span>
+           				</span>
+
+            </td>
+            <td>
+                <select class="form-control" @change="changeParam" v-model="buyThreshold">
+                    <option  v-for="i in 9" :value="i/100+1">{{i/100+1|formatNumberFilter(2)}}</option>
+                </select>
+            </td>
+            <td align="right">
+
+           				<span data-toggle="tooltip" data-placement="top" title="当前值低于均线，说明下跌趋势来了，就可以出售，或者再稍等等，比最近的高点低 5%，那么购买阈值就是 0.95">
+            				出售阈值:<span class="glyphicon glyphicon-question-sign	" > </span>
+           				</span>
+
+            </td>
+            <td>
+
+                <select class="form-control" @change="changeParam"  v-model="sellThreshold">
+                    <option v-for="i in 10" :value="1-i/100">{{1-i/100|formatNumberFilter(2)}}</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td align="right">
+           				<span data-toggle="tooltip" data-placement="top" title="指定模拟回测的开始日期，默认是当前指数最开始的日期">
+            				开始日期:<span class="glyphicon glyphicon-question-sign	" > </span>
+           				</span>
+            </td>
+            <td>
+                <div class="form-group">
+                    <div class="input-group date" id="date4Start">
+                        <input  type="text" readOnly="readOnly" class="form-control"  ><span class="input-group-addon"><i class="glyphicon glyphicon-th"></i></span>
+                    </div>
+                </div>
+            </td>
+            <td align="right">
+           				<span data-toggle="tooltip" data-placement="top" title="指定模拟回测的结束日期，默认是当前指数最后的日期">
+            				结束日期:<span class="glyphicon glyphicon-question-sign	" > </span>
+           				</span>
+            </td>
+            <td>
+                <div class="form-group">
+                    <div class="input-group date" id="date4End">
+                        <input type="text" readOnly="readOnly" class="form-control"  ><span class="input-group-addon"><i class="glyphicon glyphicon-th"></i></span>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="label label-warning">收益对比图</div>
+
+    <div  class="div4chart" style="margin:0px auto; width:80%">
+        <canvas class='canvas4Profit'></canvas>
+    </div>
+    <br><br>
+
+    <ul id="myTab" class="nav nav-tabs">
+        <li class="active">
+            <a href="#trend" data-toggle="tab">趋势投资</a>
+        </li>
+        <li><a href="#grid" data-toggle="tab">网格</a></li>
+        <li><a href="#castSurely" data-toggle="tab">定投</a></li>
+    </ul>
+
+    <div id="myTabContent" class="tab-content">
+        <!--        趋势-->
+        <div class="tab-pane fade in active" id="trend">
+            <div th:replace="./detail/trend::html" ></div>
+        </div>
+
+        <!--        网格-->
+        <div class="tab-pane fade" id="grid">
+            <div th:replace="./detail/grid::html" ></div>
+        </div>
+
+        <!--        定投-->
+        <div class="tab-pane fade" id="castSurely">
+            <div th:replace="./detail/castSurely::html" ></div>
+        </div>
+    </div>
+
+</div>
+
+
+
+<div th:replace="include/footer::html" ></div>
+
+</body>
+</html>

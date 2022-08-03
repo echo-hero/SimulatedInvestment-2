@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="include/header::html('登录')" ></head>
+<body >
+
+<script>
+    var urlIP = window.location.hostname;
+
+    $(function(){
+       var loginVue={
+           user:{usercode:'',password:''},
+       };
+       var vue=new Vue({
+           el: '#loginDiv',
+           data: loginVue,
+           mounted: function () {
+
+           },
+           methods: {
+               loginCheck:function () {
+                   var url = "http://" + urlIP + ":8031/api-user/forelogin";
+                   // var url = "http://" + urlIP + ":8041/forelogin/"+vue.user.usercode+"/"+vue.user.password;
+                   axios.post(url,vue.user).then(function (response) {
+                       var result = response.data;
+                       if(result.code==1){
+                           location.href="/api-view/user";
+                       }else{
+                           $("span.errorMessage").html(result.message);
+                           $("div.loginErrorMessageDiv").css("visibility","visible");
+                       }
+                   });
+               },
+           },
+       });
+    });
+
+</script>
+<style>
+    table{
+        margin:20px;
+    }
+</style>
+
+<div id="loginDiv">
+    <table class="table table-bordered table-condensed">
+        <thead>
+        <th align="center" colspan="4">模拟投资系统</th>
+        </thead>
+        <tbody>
+        <div class="loginErrorMessageDiv" style="visibility: hidden">
+            <div class="alert alert-danger" >
+                <button type="button" class="close" data-dismiss="alert" aria-label="Close"></button>
+                <span class="errorMessage"></span>
+            </div>
+        </div>
+        <tr>
+            <td align="right">账号:</td>
+            <td><input type="text" class="form-control" v-model="user.usercode"></td>
+        </tr>
+        <tr>
+            <td align="right">密码:</td>
+            <td><input type="password" class="form-control" v-model="user.password"></td>
+        </tr>
+        </tbody>
+    </table>
+    <div class="modal-footer" style="text-align:center;">
+        <button class="btn btn-primary" @click="loginCheck" type="button">登录</button>
+    </div>
+</div>
+
+<div th:replace="include/footer::html" ></div>
+</body>
+</html>

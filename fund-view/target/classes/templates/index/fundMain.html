@@ -1,0 +1,155 @@
+<div th:fragment="html">
+    <div id="fundMainDiv">
+        <table class="table table-bordered table-condensed">
+            <thead>
+            <th align="center" colspan="4">基金代码及名称</th>
+            </thead>
+            <tbody>
+            <tr>
+                <td width="25%">ID</td>
+                <td width="25%">基金代码</td>
+                <td width="25%">基金名称</td>
+                <td width="25%">
+                    <button type="button" class="btn btn-primary" @click="synchros">全部同步</button>
+                </td>
+            </tr>
+            <tr v-for="bean in fundMains">
+                <td>{{bean.id}}</td>
+                <td>{{bean.fundcode}}</td>
+                <td>{{bean.fundname}}</td>
+                <td>
+                    <button type="button" class="btn btn-success" @click="synchro(bean.code)">同步</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addFundMain">
+            新增基金
+        </button>
+        <div class="modal fade" id="addFundMain" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button data-dismiss="modal" class="close" type="button"><span aria-hidden="true">×</span><span
+                                class="sr-only">Close</span></button>
+                        <h4 class="modal-title">新增基金</h4>
+                    </div>
+
+                    <div>
+                        <table class="addTab">
+                            <tr>
+                                <td align="right">基金代码:</td>
+                                <td><input type="text" class="form-control" v-model="addFund.fundCode"></td>
+                            </tr>
+                            <tr>
+                                <td align="right">基金名称:</td>
+                                <td><input type="text" class="form-control" v-model="addFund.fundName"></td>
+                            </tr>
+                            <tr>
+                                <td align="right">手续费率:</td>
+                                <td><input type="text" class="form-control" v-model="addFund.commission_rate"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="modal-footer" style="text-align:center;">
+                        <button class="btn btn-primary" @click="addIndex" type="button">新增</button>
+                        <button data-dismiss="modal" class="btn btn-default" type="button">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--    分页-->
+        <div style="text-align:center;">
+            <div th:replace="./include/page::html"></div>
+        </div>
+
+    </div>
+    <script>
+        var urlIP = window.location.hostname;
+        $(function () {
+            var fundMainVue = {
+                fundMains: [],
+                pagination: {},
+                addFund: {fundCode:'',fundName:''},
+                // pageSize: '10',
+
+            };
+            var vue = new Vue({
+                el: '#fundMainDiv',
+                data: fundMainVue,
+                mounted: function () {
+                    this.$nextTick(function () {
+                        this.init(0);
+                    });
+                },
+                methods: {
+                    init: function (start) {
+                        if (undefined == start)
+                            start = 0;
+                        if(undefined==vue.pagination.pageSize)
+                            vue.pagination.pageSize=10;
+
+                        var url = "http://" + urlIP + ":8031/api-codes/fundMains/" + start + "/" + vue.pagination.pageSize;
+                        axios.get(url).then(function (response) {
+                            vue.pagination = response.data;
+                            vue.fundMains = response.data.content;
+                        });
+                    },
+                    ChangePageSize: function () {
+                        vue.init(vue.pagination.number);
+                    },
+                    jump: function(page){
+                        if('first'== page && !vue.pagination.first)
+                            vue.init(0);
+                        else if('pre'== page && !vue.pagination.first )
+                            vue.init(vue.pagination.number-1);
+                        else if('next'== page && !vue.pagination.last)
+                            vue.init(vue.pagination.number+1);
+                        else if('last'== page && !vue.pagination.last)
+                            vue.init(vue.pagination.totalPages-1);
+                    },
+                    jumpByNumber: function(start){
+                        vue.init(start);
+                    },
+                    synchro: function (fundcode) {
+                        var url = "http://" + urlIP + ":8031/api-auto/synchro/" + fundcode;
+                        axios.get(url).then(function (response) {
+                            alert(response.data);
+                        }).catch(function (error) {
+                            alert("数据量较大，已在后台同步中，请稍后在明细中查询数据是否完成同步！");
+                        });
+                    },
+                    synchros: function () {
+                        var url = "http://" + urlIP + ":8031/api-auto/synchros";
+                        axios.get(url).then(function (response) {
+                            alert(response.data);
+                        }).catch(function (error) {
+                            alert("数据量较大，已在后台同步中，请稍后在明细中查询数据是否完成同步！");
+                        });
+                    },
+                    addIndex:function () {
+                        if(""==vue.addFund.fundCode){
+                            alert("基金代码不允许为空!");
+                            return;
+                        }else if(""==vue.addFund.fundName){
+                            alert("基金名称不允许为空!");
+                            return;
+                        }else{
+                            var url =  "http://"+urlIP+":8031/api-codes/addFundMain";
+                            axios.post(url,vue.addFund).then(function(response) {
+                                vue.addFund = {fundCode:'',fundName:''};
+                                $("#addFundMain").modal('hide');
+                                vue.init(vue.pagination.number);
+                                alert(response.data);
+                            });
+                        }
+                    },
+                }
+            });
+        });
+    </script>
+
+</div>

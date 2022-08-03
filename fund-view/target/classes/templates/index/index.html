@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="./include/header::html('主页')" ></head>
+<body >
+
+<style>
+    table.addTab{
+        margin-left:130px;
+    }
+    table.addTab tr{
+        height: 60px;
+    }
+    table.addTab td{
+        padding:5px 15px;
+    }
+
+    table{
+        margin:20px;
+    }
+    div#workingArea2{
+        margin:50px;
+    }
+    table.inputTable{
+        width:100%;
+        margin-left:5px;
+    }
+    table.inputTable td{
+        padding:5px 15px;
+    }
+
+</style>
+
+<div id="workingArea2">
+
+    <ul id="myTab" class="nav nav-tabs">
+        <li class="active"><a href="#indexName" data-toggle="tab">基金名称</a></li>
+        <li><a href="#details" data-toggle="tab">基金明细</a></li>
+        <li><a href="#remind" data-toggle="tab">邮件提醒设置</a></li>
+    </ul>
+    <br><br>
+
+    <div id="myTabContent" class="tab-content">
+
+        <!--        基金名称-->
+        <div class="tab-pane fade in active" id="indexName">
+            <div th:replace="./index/fundMain::html" ></div>
+        </div>
+        <!--        基金明细-->
+        <div class="tab-pane fade" id="details">
+            <div th:replace="./index/fundData::html" ></div>
+        </div>
+        <!--        邮件提醒设置-->
+        <div class="tab-pane fade" id="remind">
+            <div th:replace="./index/emailRecord::html" ></div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="./include/footer::html" ></div>
+</body>
+</html>

@@ -1,0 +1,32 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+spring:
+  application:
+    name: fund-Manage
+  datasource:
+    url: jdbc:mysql://127.0.0.1:3306/MySQL?characterEncoding=UTF-8&useSSL-false&&serverTimezone=Asia/Shanghai
+    username: root
+    password: QWER1234
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: none
+server:
+  servlet:
+    session:
+      cookie:
+        name: WEBID
+hystrix:
+  command:
+    default:
+      execution:
+        isolation:
+          thread:timeoutInMilliseconds: 10000
+interfaceUrl:
+  synchroUrl: 'http://127.0.0.1:8031/api-auto/synchro/'
+
+#zuul:
+#  sensitive-headers:
+#zuul:sensitive-headers 处理通过网关zuul访问时会过滤掉cookie等header信息，Controller中若需获取时，需该设置 （参数@CookieValue("JSESSIONID") String cookie）

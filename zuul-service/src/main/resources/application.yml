@@ -1,0 +1,26 @@
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://localhost:8761/eureka/
+spring:
+  application:
+    name: zuul-service
+zuul:
+  routes:
+    api-a:
+      path: /api-codes/**
+      serviceId: FUND-MANAGE
+      sensitiveHeaders: "*"
+    api-b:
+      path: /api-view/**
+      serviceId: FUND-VIEW
+      sensitiveHeaders: "*"
+    api-c:
+      path: /api-auto/**
+      serviceId: AUTOMATIC-TASK
+    api-d:
+      path: /api-user/**
+      serviceId: USER-POWER
+      sensitiveHeaders: "*"
+
+#  sensitiveHeaders处理每次访问session会变更问题

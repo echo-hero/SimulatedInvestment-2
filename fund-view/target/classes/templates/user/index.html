@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:include="./include/header::html('权限管理页面')" ></head>
+<body >
+
+<style>
+    table{
+        margin:20px;
+    }
+    div#indexDiv{
+        margin:50px;
+    }
+    table.inputTable tr{
+        height: 60px;
+    }
+    table.inputTable td{
+        padding:5px 15px;
+    }
+
+</style>
+
+<div id="indexDiv">
+
+    <ul id="myTab" class="nav nav-tabs">
+        <li class="active"><a href="#userManager" data-toggle="tab">用户管理</a></li>
+        <li><a href="#roleManager" data-toggle="tab">角色管理</a></li>
+        <li><a href="#powerManager" data-toggle="tab">权限管理</a></li>
+    </ul>
+    <br><br>
+
+    <div id="myTabContent" class="tab-content">
+
+        <div class="tab-pane fade in active" id="userManager">
+            <div th:replace="./user/userManager::html" ></div>
+        </div>
+
+        <div class="tab-pane fade" id="roleManager">
+            <div th:replace="./user/roleManager::html" ></div>
+        </div>
+
+        <div class="tab-pane fade" id="powerManager">
+            <div th:replace="./user/powerManager::html" ></div>
+        </div>
+    </div>
+</div>
+
+<div th:replace="./include/footer::html" ></div>
+</body>
+</html>

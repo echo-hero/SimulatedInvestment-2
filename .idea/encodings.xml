@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/automatic-task" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eureka-server" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/fund-Manage" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/fund-view" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/user-power" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/zuul-service" charset="UTF-8" />
+  </component>
+</project>

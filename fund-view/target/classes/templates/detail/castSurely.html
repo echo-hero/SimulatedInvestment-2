@@ -1,0 +1,66 @@
+<div th:fragment="html">
+    <div id="castSurelyDiv">
+        <table class="inputTable ">
+            <tr>
+                <td align="right">
+                    <span data-toggle="tooltip" data-placement="top" title="小于或等于0时，不做卖出操作，将一直持有！">
+                        收益率（%） :
+                    </span>
+                </td>
+                <td>
+                    <input type="text" class="form-control" @change="castSurelyFunction" v-model="castProfitRate">
+                </td>
+                <td align="right">
+                    <span data-toggle="tooltip" data-placement="top">
+                        定投周期（天） :
+                    </span>
+                </td>
+                <td>
+                    <input type="text" class="form-control" @change="castSurelyFunction" v-model="castCycle">
+                </td>
+            </tr>
+        </table>
+
+        <table class="table table-bordered table-condensed">
+            <thead>
+            <th align="center" colspan="2">定投盈亏统计（每期定投100元）</th>
+            </thead>
+            <tbody>
+            <tr>
+                <td width="50%">总共买入次数</td>
+                <td>{{regular.number}}</td>
+            </tr>
+            <tr>
+                <td>拥有总份额</td>
+                <td>{{regular.shareSum}}</td>
+            </tr>
+            <tr>
+                <td>平均净值</td>
+                <td v-if="regular.shareSum==0">0</td>
+                <td v-else>{{regular.number*money/regular.shareSum | formatNumberFilter(4)}}</td>
+            </tr>
+            <tr>
+                <td>市值</td>
+                <td>{{regular.nowDwjz}}</td>
+            </tr>
+            <tr>
+                <td>定投总金额</td>
+                <td>{{regular.number*100}}</td>
+            </tr>
+            <tr>
+                <td>卖出日期</td>
+                <td>{{regular.sellDate}}</td>
+            </tr>
+            <tr>
+                <td>收益</td>
+                <td>{{regular.profit | formatNumberFilter(2)}}</td>
+            </tr>
+            <tr>
+                <td>收益率</td>
+                <td v-if="regular.number==0">0</td>
+                <td v-else>{{regular.profit/regular.number/money*100 | formatNumberFilter(2)}}%</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

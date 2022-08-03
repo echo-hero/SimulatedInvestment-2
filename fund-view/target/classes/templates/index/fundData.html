@@ -1,0 +1,336 @@
+<div th:fragment="html">
+    <div id="fundDataDiv">
+        <div class="label label-warning">总投资一览</div>
+        <table class="table table-striped table-bordered table-condensed">
+            <thead>
+            <th>基金代码</th>
+            <th>基金名称</th>
+            <th>投资总金额</th>
+            <th>当前持有总金额</th>
+            <th>总投资份额</th>
+            <th>持有份额</th>
+            <th>买入均价</th>
+            <th>持有均价</th>
+            <th>市值</th>
+            <th>总亏盈</th>
+            <th>收益率</th>
+            </thead>
+            <tbody>
+            <tr v-for="bean in overview">
+                <td>{{bean.fundMain.fundcode}}</td>
+                <td>{{bean.fundMain.fundname}}</td>
+                <td>{{bean.sumMoney}}</td>
+                <td>{{bean.holdSum | formatNumberFilter(2)}}</td>
+                <td>{{bean.shareSum}}</td>
+                <td>{{bean.holdShare}}</td>
+                <td>{{bean.buyAVG | formatNumberFilter(4)}}</td>
+                <td>{{bean.holdAVG | formatNumberFilter(4)}}</td>
+                <td>{{bean.nowDwjz}}</td>
+                <td>
+                    <span v-if="0<bean.profit" class="label label-danger">{{bean.profit | formatNumberFilter(2)}}</span>
+                    <span v-else class="label label-success">{{bean.profit | formatNumberFilter(2)}}</span>
+                </td>
+                <td>
+                    <span v-if="0<bean.profit" class="label label-danger">{{bean.profit/bean.sumMoney*100 | formatNumberFilter(2)}}%</span>
+                    <span v-else
+                          class="label label-success">{{bean.profit/bean.sumMoney*100 | formatNumberFilter(2)}}%</span>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <table class="inputTable ">
+            <tr>
+                <td width="25%" align="right">
+                    <span data-toggle="tooltip" data-placement="top">请选择指数:</span>
+                </td>
+                <td width="25%">
+                    <select v-model="currentFund" class="indexSelect form-control" @click="changeFundCode">
+                        <option v-for="bean in fundMains " :value="bean.fundcode">{{bean.fundname}} - ( {{bean.fundcode}} )</option>
+                    </select>
+                </td>
+                <td width="25%"></td>
+                <td width="25%"></td>
+            </tr>
+            <tr>
+                <td width="40%"></td>
+                <td>
+                    <button type="button" class="btn btn-success" @click="changeFundCode">查询</button>
+                </td>
+                <td>
+                    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#addInvestMod">新增
+                    </button>
+                </td>
+                <td width="40%"></td>
+            </tr>
+        </table>
+
+        <div class="modal fade" id="addInvestMod" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button data-dismiss="modal" class="close" type="button"><span aria-hidden="true">×</span><span
+                                class="sr-only">Close</span></button>
+                        <h4 class="modal-title">新增投资情况</h4>
+                    </div>
+
+                    <div>
+                        <table class="inputTable">
+                            <tr>
+                                <td align="right" width="25%">基金代码:</td>
+                                <td width="25%">
+                                    <select v-model="addInvest.fundcode" class="indexSelect form-control">
+                                        <option v-for="bean in fundMains " :value="bean.fundcode">{{bean.fundname}} - ( {{bean.fundcode}} )</option>
+                                    </select>
+                                </td>
+                                <td align="right" width="25%">购买日期:</td>
+                                <td width="25%"><input type="text" class="form-control" v-model="addInvest.operate_date">
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="right">买卖标志:</td>
+                                <td>
+                                    <select class="form-control" v-model="addInvest.buysell_flag">
+                                        <option value="0">买</option>
+                                        <option value="1">卖</option>
+                                    </select>
+                                </td>
+                                <td align="right">总金额:</td>
+                                <td><input type="text" class="form-control" v-model="addInvest.sum_money"></td>
+                            </tr>
+                            <tr>
+                                <td align="right">份额:</td>
+                                <td><input type="text" class="form-control" v-model="addInvest.share"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="modal-footer" style="text-align:center;">
+                        <button class="btn btn-primary" @click="addInvestFunction" type="button">新增</button>
+                        <button data-dismiss="modal" class="btn btn-default" type="button">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <table class="table table-bordered table-condensed">
+            <thead>
+            <th align="center" colspan="9">基金代码及名称</th>
+            </thead>
+            <tbody>
+            <tr>
+                <td width="5%">ID</td>
+                <td width="15%">基金代码</td>
+                <td width="11%">买/卖</td>
+                <td width="15%">操作日期</td>
+                <td width="11%">份额</td>
+                <td width="11%">单位净值</td>
+                <td width="11%">手续费</td>
+                <td width="11%">总金额</td>
+                <td width="10%">操作</td>
+            </tr>
+            <tr style="display:none;" id="notdata">
+                <td colspan="9">暂无数据！</td>
+            </tr>
+            <tr v-for="bean in user_invests">
+                <td>{{bean.id}}</td>
+                <td>{{bean.fundcode}}</td>
+                <td>
+                    <span v-if="0==bean.buysell_flag" class="label label-danger">买</span>
+                    <span v-if="1==bean.buysell_flag" class="label label-success">卖</span>
+                </td>
+                <td>{{bean.operate_date}}</td>
+                <td>{{bean.share}}</td>
+                <td>{{bean.dwjz}}</td>
+                <td>{{bean.commission}}</td>
+                <td>{{bean.sum_money}}</td>
+                <td>
+                    <button type="button" class="btn btn-success" @click="editInvMod(bean.id)">修改</button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="modal fade" id="editInvMod" data-backdrop="static" tabindex="-1" role="dialog">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <button data-dismiss="modal" class="close" type="button"><span aria-hidden="true">×</span><span
+                                class="sr-only">Close</span></button>
+                        <h4 class="modal-title">修改投资情况</h4>
+                    </div>
+
+                    <div>
+                        <input type="text" class="form-control" v-model="editInvest.id" style="display:none;">
+                        <table class="inputTable">
+                            <tr>
+                                <td align="right" width="25%">基金代码:</td>
+                                <td width="25%">
+                                    <select v-model="editInvest.fundcode" class="indexSelect form-control" disabled
+                                            title="bean.name+'-'+bean.code">
+                                        <option v-for="bean in fundMains " :value="bean.fundcode">{{bean.fundname}} - ( {{bean.fundcode}} )</option>
+                                    </select>
+                                </td>
+                                <td align="right" width="25%">购买日期:</td>
+                                <td width="25%"><input type="text" class="form-control" v-model="editInvest.operate_date"
+                                                       disabled>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td align="right">买卖标志:</td>
+                                <td>
+                                    <select class="form-control" v-model="editInvest.buysell_flag" disabled>
+                                        <option value="0">买</option>
+                                        <option value="1">卖</option>
+                                    </select>
+                                </td>
+                                <td align="right">总金额:</td>
+                                <td><input type="text" class="form-control" v-model="editInvest.sum_money"></td>
+                            </tr>
+                            <tr>
+                                <td align="right">份额:</td>
+                                <td><input type="text" class="form-control" v-model="editInvest.share"></td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <div class="modal-footer" style="text-align:center;">
+                        <button class="btn btn-primary" @click="editInvestFunction" type="button">修改</button>
+                        <button data-dismiss="modal" class="btn btn-default" type="button">关闭</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--            分页-->
+        <div style="text-align:center;">
+            <div th:replace="./include/page::html"></div>
+        </div>
+    </div>
+    <script>
+        var urlIP = window.location.hostname;
+        $(function () {
+            var fundDataVue = {
+                fundMains:[],
+                overview:{},
+
+                addInvest:{fundcode:'',operate_date:'',buysell_flag:'0',sum_money:'0',share:'0'},
+                editInvest:{id:'',fundcode:'',operate_date:'',buysell_flag:'',sum_money:'',share:''},
+
+                pagination: {},
+                // pageSize:'10',
+                user_invests:[],
+                currentFund:'004424',
+            };
+            var vue = new Vue({
+                el: '#fundDataDiv',
+                data: fundDataVue,
+                mounted: function () {
+                    // this.currentFund='004424';
+                    this.init();
+                    this.$nextTick(function () {
+                        this.queryInvest(0);
+                    });
+                },
+                methods: {
+                    init: function () {
+                        var url = "http://"+urlIP+":8031/api-codes/overview";
+                        axios.get(url).then(function(response){
+                            vue.overview=response.data;
+                        });
+
+                        var url =  "http://"+urlIP+":8031/api-codes/fundMains";
+                        axios.get(url).then(function(response) {
+                            vue.fundMains = response.data;
+                        });
+                    },
+                    queryInvest:function(start){
+                        if(undefined==start)
+                            start=0;
+                        if (undefined == vue.pagination.pageSize)
+                            vue.pagination.pageSize = 10;
+                        if(undefined == vue.currentFund)
+                            vue.currentFund='004424';
+
+
+                        var url = "http://"+urlIP+":8031/api-codes/userInvests/"+vue.currentFund+"/"+start+"/"+vue.pagination.pageSize;
+                        axios.get(url).then(function(response) {
+                            vue.pagination = response.data;
+                            vue.user_invests = response.data.content;
+                            $("#notdata").hide();
+                        }).catch(function(error){
+                            vue.persons=[];
+                            vue.page2={};
+                            $("#notdata").show();
+                        });
+                    },
+                    changeFundCode:function () {
+                        vue.queryInvest(0);
+                    },
+                    addInvestFunction:function () {
+                        if(vue.addInvest.sum_money=='')
+                            vue.addInvest.sum_money=0;
+                        if(vue.addInvest.share=='')
+                            vue.addInvest.share=0;
+
+                        if(vue.addInvest.operate_date==''){
+                            alert("购买日期不允许为空！");
+                        }else if(vue.addInvest.share==0 && vue.addInvest.sum_money==0){
+                            alert("份额和总金额不允许同时为空！");
+                        }else{
+                            var url = "http://"+urlIP+":8031/api-codes/addInvest";
+                            axios.post(url,vue.addInvest).then(function(response){
+                                alert(response.data);
+                                $("#addInvestMod").modal('hide');
+                                vue.currentFund=vue.addInvest.fundcode;
+                                vue.queryInvest(vue.pagination.number);
+                                vue.addInvest={fundcode:'',operate_date:'',buysell_flag:'0',sum_money:'0',share:'0'};
+                            });
+                        }
+                    },
+                    editInvMod:function (id) {
+                        var url = "http://"+urlIP+":8031/api-codes/getInvById/"+id;
+                        axios.get(url).then(function(response) {
+                            if(null==response.data){
+                                alert("数据获取失败，请重新查询后再进行修改处理！");
+                            }else{
+                                vue.editInvest = response.data;
+                                $("#editInvMod").modal('show');
+                            }
+                        });
+                    },
+                    editInvestFunction:function () {
+                        var url = "http://"+urlIP+":8031/api-codes/editInv";
+                        axios.post(url,vue.editInvest).then(function(response){
+                            alert(response.data);
+                            $("#editInvMod").modal('hide');
+                            vue.currentFund=vue.editInvest.fundcode;
+                            vue.queryInvest(vue.pagination.number);
+                            vue.editInvest={id:'',fundcode:'',operate_date:'',buysell_flag:'',sum_money:'',share:''};
+                        });
+                    },
+
+                    ChangePageSize: function () {
+                        vue.pageSize=$("#pageSizeId").val();
+                        vue.queryInvest(vue.pagination.number);
+                    },
+                    jump: function(page){
+                        if('first'== page && !vue.pagination.first)
+                            vue.queryInvest(0);
+                        else if('pre'== page && !vue.pagination.first )
+                            vue.queryInvest(vue.pagination.number-1);
+                        else if('next'== page && !vue.pagination.last)
+                            vue.queryInvest(vue.pagination.number+1);
+                        else if('last'== page && !vue.pagination.last)
+                            vue.queryInvest(vue.pagination.totalPages-1);
+                    },
+                    jumpByNumber: function(start){
+                        vue.queryInvest(start);
+                    },
+
+                },
+            });
+        });
+    </script>
+
+</div>
